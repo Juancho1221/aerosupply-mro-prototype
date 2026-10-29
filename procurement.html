@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroSupply - MRO Station</title>
+    <!-- Fuente moderna Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Estilos y FontAwesome -->
+    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <!-- BARRA LATERAL MODERNA -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-plane-departure"></i>
+                </div>
+                <div class="logo-text">
+                    <h2>AeroSupply</h2>
+                    <span>MRO Station</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button id="navOrdersBtn" class="nav-item active" type="button">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span>Purchase Orders</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-user">
+                <div class="user-avatar">MB</div>
+                <div class="user-info">
+                    <span class="user-name">M. Buyer</span>
+                    <span class="user-role">Procurement Desk</span>
+                </div>
+                <button type="button" class="btn-logout" title="Sign Out" onclick="handleSignOut()">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL -->
+        <main class="main-viewport">
+            <header class="app-topbar">
+                <div class="topbar-title">
+                    <h1 id="viewTitle">Purchase Orders & Dispatch</h1>
+                </div>
+                <div class="topbar-actions">
+                    <div class="station-pill">
+                        <span class="status-dot"></span>
+                        Medellín HQ (UTC-5)
+                    </div>
+                </div>
+            </header>
+
+            <section id="viewProcurement" class="content-view" style="padding: 1.5rem 2rem;">
+                <div class="view-header-flex" style="margin-bottom: 1.5rem;">
+                    <div>
+                        <h2 class="section-title">Purchase Orders & Dispatch</h2>
+                        <p class="section-subtitle">Manage approved requisitions, emit commercial POs and register
+                            shipment tracking.</p>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">Request ID</th>
+                                <th style="width: 12%;">Target</th>
+                                <th style="width: 15%;">Part Number</th>
+                                <th style="width: 8%; text-align: center;">Qty</th>
+                                <th style="width: 11%; text-align: center;">Urgency</th>
+                                <th style="width: 13%;">Quoted Value</th>
+                                <th style="width: 13%; text-align: center;">Approval Status</th>
+                                <th style="width: 13%; text-align: center;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="procurementTableBody">
+                            <!-- Caso 1: Aprobada por Gerente (HU-006 habilitada) -->
+                            <tr data-id="REQ-2026-0774" data-pn="D5400" data-tail="C-GYBF" data-qty="1"
+                                data-urgency="AOG" data-quote="2450.00" data-status="Approved">
+                                <td class="col-id">REQ-2026-0774</td>
+                                <td class="col-target">C-GYBF</td>
+                                <td class="col-pn">D5400</td>
+                                <td style="text-align: center; font-weight: 600;">1</td>
+                                <td style="text-align: center;"><span class="badge-urgency aog">AOG</span></td>
+                                <td class="mono">$2,450.00 USD</td>
+                                <td style="text-align: center;">
+                                    <span class="badge-status approved">Approved (MM)</span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-primary btn-action-col"
+                                        onclick="openPoModal(this)">
+                                        <i class="fa-solid fa-file-invoice-dollar"></i> Emit PO
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Caso 2: Quoting sin necesidad de aprobación (< $1500 USD) -->
+                            <tr data-id="REQ-2026-0812" data-pn="C156-2" data-tail="STOCK" data-qty="2"
+                                data-urgency="Routine" data-quote="480.00" data-status="Quoting">
+                                <td class="col-id">REQ-2026-0812</td>
+                                <td class="col-target">STOCK</td>
+                                <td class="col-pn">C156-2</td>
+                                <td style="text-align: center; font-weight: 600;">2</td>
+                                <td style="text-align: center;"><span class="badge-urgency routine">Routine</span></td>
+                                <td class="mono">$480.00 USD</td>
+                                <td style="text-align: center;"><span class="badge-status pending">Quoting</span></td>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-primary btn-action-col"
+                                        onclick="openPoModal(this)">
+                                        <i class="fa-solid fa-file-invoice-dollar"></i> Emit PO
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Caso 3: Ya comprada, pendiente de Tracking (HU-007) -->
+                            <tr data-id="REQ-2026-0690" data-pn="MT106-3" data-tail="STOCK" data-qty="3"
+                                data-urgency="Routine" data-quote="165.00" data-status="Purchased"
+                                data-po="PO-2026-8821">
+                                <td class="col-id">REQ-2026-0690</td>
+                                <td class="col-target">STOCK</td>
+                                <td class="col-pn">MT106-3</td>
+                                <td style="text-align: center; font-weight: 600;">3</td>
+                                <td style="text-align: center;"><span class="badge-urgency routine">Routine</span></td>
+                                <td class="mono">$165.00 USD</td>
+                                <td style="text-align: center;"><span class="badge-status instock">Purchased</span></td>
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-table-action btn-action-col"
+                                        onclick="openDispatchModal(this)">
+                                        <i class="fa-solid fa-truck-fast"></i> Add Tracking
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Caso 4: Pendiente de Aprobación por Gerencia (RF-009 / RF-010 / HU-006) -->
+                            <tr data-id="REQ-2026-0925" data-pn="PT6-BLADE" data-tail="C-FAEL" data-qty="1"
+                                data-urgency="AOG" data-quote="3850.00" data-status="Pending Approval">
+                                <td class="col-id">REQ-2026-0925</td>
+                                <td class="col-target">C-FAEL</td>
+                                <td class="col-pn">PT6-BLADE</td>
+                                <td style="text-align: center; font-weight: 600;">1</td>
+                                <td style="text-align: center;"><span class="badge-urgency aog">AOG</span></td>
+                                <td class="mono">$3,850.00 USD</td>
+
+                                <!-- 1. Celda de Estado (Insignia Amarilla de Aprobación Pendiente) -->
+                                <td style="text-align: center;">
+                                    <span class="badge-status pending">Pending (MM)</span>
+                                </td>
+
+                                <!-- 2. Celda de Acción (Botón Bloqueado con ancho estandarizado) -->
+                                <td style="text-align: center;">
+                                    <button type="button" class="btn-action-col" disabled
+                                        title="PO generation locked: Quote exceeds $1,500 USD limit and requires Maintenance Manager digital authorization (RF-009 / RF-010).">
+                                        <i class="fa-solid fa-lock"></i> Locked (MM)
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- =======================================================
+       MODAL: REGISTRO DE ORDEN DE COMPRA (HU-006 / HU-004)
+       ======================================================= -->
+        <div id="modalPoRegister" class="modal-backdrop hidden">
+            <div class="modal-card" style="max-width: 580px; width: 100%;">
+
+                <!-- Encabezado de la Modal -->
+                <div class="modal-header-alert"
+                    style="display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1rem;">
+                    <div
+                        style="background-color: #e0f2fe; color: var(--primary, #0284c7); width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        <i class="fa-solid fa-file-invoice-dollar"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.1rem; color: #0f172a;">Register Purchase Order (PO)</h3>
+                        <span style="font-size: 0.8rem; color: #64748b;">Formalize commercial acquisition from selected
+                            quote</span>
+                    </div>
+                </div>
+
+                <!-- Tarjeta: Cotización Ganadora Adjudicada (HU-004) -->
+                <div
+                    style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+
+                    <!-- Cabecera de la tarjeta -->
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dcfce7; padding-bottom: 0.5rem; margin-bottom: 0.75rem;">
+                        <span
+                            style="font-size: 0.75rem; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.4rem;">
+                            <i class="fa-solid fa-circle-check" style="color: #16a34a;"></i> Selected Quote (HU-004)
+                        </span>
+                        <span id="poSelectedReqId" class="mono"
+                            style="font-size: 0.8rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 0.15rem 0.5rem; border-radius: 4px;">REQ-2026-XXXX</span>
+                    </div>
+
+                    <!-- Grilla de datos 2x2 estructurada -->
+                    <div
+                        style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem 1.5rem; font-size: 0.82rem;">
+                        <div>
+                            <span
+                                style="color: #15803d; font-size: 0.75rem; display: block; margin-bottom: 0.15rem;">Vendor</span>
+                            <strong id="poVendorName" style="color: #14532d; font-size: 0.88rem;">Textron Aviation Parts
+                                (AVL)</strong>
+                        </div>
+                        <div>
+                            <span
+                                style="color: #15803d; font-size: 0.75rem; display: block; margin-bottom: 0.15rem;">Quoted
+                                Total</span>
+                            <strong id="poQuotedAmount" class="mono"
+                                style="color: #14532d; font-size: 0.95rem;">$2,450.00 USD</strong>
+                        </div>
+                        <div>
+                            <span
+                                style="color: #15803d; font-size: 0.75rem; display: block; margin-bottom: 0.15rem;">Target
+                                & Part</span>
+                            <strong id="poPartTarget" class="mono" style="color: #14532d; font-size: 0.88rem;">C-GYBF
+                                (D5400)</strong>
+                        </div>
+                        <div>
+                            <span
+                                style="color: #15803d; font-size: 0.75rem; display: block; margin-bottom: 0.15rem;">Est.
+                                Lead Time</span>
+                            <strong id="poLeadTime" style="color: #14532d; font-size: 0.88rem;">5 calendar days</strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Formulario Comercial Obligatorio (HU-006 / RN004) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                            PO Number <span style="color: #dc2626;">*</span>
+                        </label>
+                        <input type="text" id="poNumberInput" class="form-control mono" readonly
+                            style="background-color: #f8fafc; color: #475569; font-weight: 700; cursor: not-allowed;">
+                    </div>
+
+                    <div class="form-group">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                            Payment Method <span style="color: #dc2626;">*</span>
+                        </label>
+                        <select id="poPaymentSelect" class="form-control">
+                            <option value="">Select payment method...</option>
+                            <option value="Corporate Credit Card">Corporate Credit Card (Amex)</option>
+                            <option value="Net 30 Credit Line">Commercial Credit (Net 30)</option>
+                            <option value="Wire Transfer">Wire Transfer (Bank Wire)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                            Currency & TRM
+                        </label>
+                        <input type="text" id="poCurrencyTrm" class="form-control mono" value="USD (TRM: 1.00)" readonly
+                            style="background-color: #f8fafc; color: #64748b;">
+                    </div>
+
+                    <div class="form-group">
+                        <label
+                            style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                            Transaction Time (UTC)
+                        </label>
+                        <input type="text" id="poTimestampUtc" class="form-control mono" value="Auto-generated on Save"
+                            readonly style="background-color: #f8fafc; color: #64748b;">
+                    </div>
+                </div>
+
+                <!-- Casilla de Notas y Lead Time para visibilidad del mecánico en Hangar -->
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label
+                        style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                        Commercial Notes & Lead Time (Hangar Visibility)
+                    </label>
+                    <textarea id="poNotesInput" rows="2" class="form-control"
+                        placeholder="e.g. Order confirmed with supplier. Expected delivery in 5 days. Dispatch pending packaging."></textarea>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div
+                    style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                    <button type="button" class="btn-ghost" onclick="closeModal('modalPoRegister')">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="confirmSavePo()">Confirm & Issue PO</button>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- =======================================================
+       MODAL: REGISTRO DE DESPACHO Y TRACKING (HU-007)
+       ======================================================= -->
+    <div id="modalDispatchRegister" class="modal-backdrop hidden">
+        <div class="modal-card" style="max-width: 520px; width: 100%;">
+
+            <!-- Encabezado de la Modal -->
+            <div class="modal-header-alert"
+                style="display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1rem;">
+                <div
+                    style="background-color: #e0f2fe; color: var(--primary, #0284c7); width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-plane-departure"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: #0f172a;">Register Shipment Dispatch</h3>
+                    <span style="font-size: 0.8rem; color: #64748b;">Add carrier and tracking details (HU-007)</span>
+                </div>
+            </div>
+
+            <!-- Metadatos de la Orden Comprada -->
+            <div
+                style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; font-size: 0.85rem;">
+                <div><span style="color: #64748b;">PO Number:</span> <strong id="dispPoNumber" class="mono">--</strong>
+                </div>
+                <div><span style="color: #64748b;">Request ID:</span> <strong id="dispReqId" class="mono">--</strong>
+                </div>
+            </div>
+
+            <!-- Formulario de Transporte Obligatorio (RF-012) -->
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label
+                    style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                    Carrier (Shipping Company) <span style="color: #dc2626;">*</span>
+                </label>
+                <select id="dispCarrierSelect" class="form-control">
+                    <option value="">Select carrier...</option>
+                    <option value="FedEx Express">FedEx Express</option>
+                    <option value="DHL Express">DHL Express</option>
+                    <option value="UPS Air Cargo">UPS Air Cargo</option>
+                    <option value="Air Canada Cargo">Air Canada Cargo (Specialized)</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label
+                    style="font-size: 0.8rem; font-weight: 600; color: #334155; display: block; margin-bottom: 0.3rem;">
+                    Tracking Number / AWB <span style="color: #dc2626;">*</span>
+                </label>
+                <input type="text" id="dispAwbInput" class="form-control mono" style="text-transform: uppercase;"
+                    placeholder="e.g. 7849-0129-4410">
+            </div>
+
+            <!-- Botones de Acción -->
+            <div
+                style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                <button type="button" class="btn-ghost" onclick="closeModal('modalDispatchRegister')">Cancel</button>
+                <button type="button" class="btn-primary" onclick="confirmSaveDispatch()">
+                    <i class="fa-solid fa-truck-fast"></i> Mark as In Transit
+                </button>
+            </div>
+
+        </div>
+    </div>
+    <script src="procurement.js"></script>
+</body>
+
+</html>
