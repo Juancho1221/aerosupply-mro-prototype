@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroSupply - Warehouse</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon"><i class="fa-solid fa-plane-departure"></i></div>
+        <div class="logo-text"><h2>AeroSupply</h2><span>MRO Station</span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <button id="navIncoming" class="nav-item active" type="button"><i class="fa-solid fa-truck-ramp-box"></i><span>Incoming Shipments</span></button>
+        <button id="navInventory" class="nav-item" type="button"><i class="fa-solid fa-warehouse"></i><span>Active Inventory</span></button>
+        <button id="navQuarantine" class="nav-item" type="button"><i class="fa-solid fa-tag"></i><span>Quarantine (Red Tag)</span></button>
+      </nav>
+      <div class="sidebar-user">
+        <div class="user-avatar">WH</div>
+        <div class="user-info"><span class="user-name">R. Storekeeper</span><span class="user-role">Storekeeper / Warehouse</span></div>
+        <button type="button" class="btn-logout" title="Switch Role" onclick="sessionStorage.removeItem('aerosupply.role'); location.href='login.html';"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <main class="main-viewport">
+      <header class="app-topbar">
+        <div class="topbar-title"><h1 id="viewTitle">Incoming Shipments</h1></div>
+        <div class="station-pill"><span class="status-dot"></span>CYUL Hangar - UTC</div>
+      </header>
+
+      <section id="viewIncoming" class="content-view" style="padding:1.5rem 2rem;">
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>Request ID</th><th>Carrier / AWB</th><th>Part Number</th><th>Qty</th><th>Status</th><th style="text-align:center">Action</th></tr></thead>
+            <tbody id="incomingTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="viewInventory" class="content-view hidden" style="padding:1.5rem 2rem;">
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>Inventory ID</th><th>Part Number</th><th>Description</th><th>Qty</th><th>Location</th><th>Certificate</th></tr></thead>
+            <tbody id="inventoryTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="viewQuarantine" class="content-view hidden" style="padding:1.5rem 2rem;">
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr><th>Request ID</th><th>Part Number</th><th>Classification</th><th>Rejection Reason</th><th>Status</th></tr></thead>
+            <tbody id="quarantineTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modalReceiving" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:760px;width:100%">
+      <h3>Receiving & 3-Step Quality Control</h3>
+      <p id="receivingReqId" class="mono"></p>
+
+      <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <fieldset class="qc-card">
+          <legend>1. Physical Inspection</legend>
+          <label>Part Number</label><input id="qcPartNumber" class="form-control mono">
+          <label>Serial Number</label><input id="qcSerialNumber" class="form-control mono">
+          <label>Packaging</label>
+          <select id="qcPhysicalStatus" class="form-control"><option value="">Select</option><option value="Passed">Passed</option><option value="Failed">Failed</option></select>
+        </fieldset>
+
+        <fieldset class="qc-card">
+          <legend>2. Airworthiness</legend>
+          <select id="qcCertificateType" class="form-control"><option>TCCA Form One</option><option>FAA Form 8130-3</option><option>EASA Form 1</option></select>
+          <input id="qcCertificateNumber" class="form-control mono" placeholder="Certificate Number">
+          <input id="qcAuthority" class="form-control" placeholder="Issuing Authority">
+          <select id="qcCertificateStatus" class="form-control"><option value="">Select</option><option value="Passed">Passed</option><option value="Non-Conforming">Non-Conforming</option></select>
+        </fieldset>
+
+        <fieldset class="qc-card">
+          <legend>3. Shelf Life / Life Limit</legend>
+          <input id="qcBatchLot" class="form-control" placeholder="Batch / Lot">
+          <input id="qcManufacturingDate" type="date" class="form-control">
+          <input id="qcExpirationDate" type="date" class="form-control">
+          <select id="qcShelfStatus" class="form-control"><option value="">Select</option><option value="Passed">Passed</option><option value="Non-Conforming">Non-Conforming</option></select>
+        </fieldset>
+      </div>
+
+      <div id="warehouseLocationGroup" style="margin-top:12px">
+        <label class="form-label">Location</label>
+        <input id="qcLocation" class="form-control" placeholder="Example: Bay 1 - Shelf A">
+      </div>
+
+      <div class="modal-actions-split" style="margin-top:1rem">
+        <button type="button" class="btn-ghost" onclick="closeModal('modalReceiving')">Cancel</button>
+        <button id="btnQuarantine" type="button" class="btn-danger-solid" onclick="openRedTagModal()">Quarantine (Red Tag)</button>
+        <button id="btnAdmit" type="button" class="btn-primary" onclick="admitToInventory()">Admit to Inventory</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalRedTag" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>Red Tag Quarantine</h3>
+      <p id="redTagReqId" class="mono"></p>
+      <label class="form-label">Classification</label>
+      <select id="redTagClassification" class="form-control">
+        <option value="">Select classification</option>
+        <option>Physical Damage</option>
+        <option>Documentation Discrepancy</option>
+        <option>Missing Certification</option>
+        <option>Expired Shelf Life</option>
+      </select>
+      <label class="form-label" style="margin-top:10px">Rejection Reason <span style="color:red">*</span></label>
+      <textarea id="redTagReason" class="form-control" rows="4"></textarea>
+      <div class="modal-actions-split" style="margin-top:1rem">
+        <button type="button" class="btn-ghost" onclick="closeModal('modalRedTag')">Cancel</button>
+        <button type="button" class="btn-danger-solid" onclick="confirmQuarantine()">Confirm Quarantine</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="store.js"></script>
+  <script src="warehouse.js"></script>
+</body>
+</html>

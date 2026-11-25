@@ -243,8 +243,8 @@ function triggerSuccessModal() {
 // Cierre de sesión simulado
 function handleSignOut() {
   if (confirm("Are you sure you want to end your current session?")) {
-    alert("Session closed successfully. Returning to login...");
-    location.reload();
+    sessionStorage.removeItem("aerosupply.role");
+    location.href = "login.html";
   }
 }
 
@@ -669,3 +669,261 @@ function confirmDeleteRequisition() {
 
   closeModal("modalDeleteReq");
 }
+
+// Role 1: Store-backed implementation
+let pendingCreateData = null;
+
+function mechanicActor(action) {
+  return {
+    user: "J. Serna",
+    role: "Line Mechanic",
+    action: action
+  };
+}
+
+function collectCreateData() {
+  const destination = document.getElementById("reqDestination").value;
+  const urgency = document.querySelector('input[name="urgencyRadio"]:checked').value;
+  const reason = document.getElementById("reqReason").value;
+  const otherDetail = document.getElementById("reqOtherReasonDetail").value.trim();
+
+  if (reason === "Other" && !otherDetail) {
+    throw new Error("Please provide the specific reason for this request.");
+  }
+
+  const parts = [];
+  document.querySelectorAll(".part-main-row").forEach(function (row) {
+    const partNumber = row.querySelector(".input-pn").value.trim().toUpperCase();
+    const description = row.querySelector(".input-desc").value.trim();
+    const qty = parseInt(row.querySelector(".input-qty").value, 10);
+    const note = row.querySelector(".input-part-note").value.trim();
+
+    if (!partNumber || !description || isNaN(qty) || qty <= 0) {
+      throw new Error("Please enter a valid Part Number, Description, and Quantity (>0).");
+    }
+
+    parts.push({ partNumber: partNumber, description: description, qty: qty, note: note });
+  });
+
+  return {
+    tailNumber: destination,
+    urgency: urgency,
+    reason: reason === "Other" ? "Other: " + otherDetail : reason,
+    requestedBy: "J. Serna",
+    parts: parts
+  };
+}
+
+function findMechanicConflict(data) {
+  const activeStatuses = ["Pending", "Quoting", "Pending Approval", "Approved", "Purchased", "In Transit"];
+  const state = AeroSupplyStore.getState();
+
+  for (const part of data.parts) {
+    const active = state.requests.find(function (request) {
+      return activeStatuses.includes(request.status) &&
+        request.tailNumber === data.tailNumber &&
+        request.parts.some(function (item) { return item.partNumber === part.partNumber; });
+    });
+    if (active) return { type: "active", request: active, part: part };
+
+    const stocked = state.inventory.find(function (item) {
+      if (item.status !== "In Stock" || item.partNumber !== part.partNumber) return false;
+      const sourceRequest = state.requests.find(function (request) {
+        return request.id === item.sourceRequestId;
+      });
+      return data.tailNumber === "STOCK" ||
+        (sourceRequest && sourceRequest.tailNumber === data.tailNumber);
+    });
+    if (stocked) return { type: "stock", inventory: stocked, part: part };
+  }
+
+  return null;
+}
+
+function saveMechanicRequest(data) {
+  const request = AeroSupplyStore.createRequest(data, mechanicActor("Request created"));
+  document.getElementById("successReqId").innerText = request.id;
+
+  const aogAlert = document.getElementById("successAogAlert");
+  if (request.urgency === "AOG") {
+    aogAlert.classList.remove("hidden");
+  } else {
+    aogAlert.classList.add("hidden");
+  }
+
+  openModal("modalSuccess");
+  return request;
+}
+
+function validateAndSubmitRequest() {
+  let data;
+  try {
+    data = collectCreateData();
+  } catch (error) {
+    alert(error.message);
+    return;
+  }
+
+  const conflict = findMechanicConflict(data);
+  if (!conflict) {
+    pendingCreateData = null;
+    saveMechanicRequest(data);
+    return;
+  }
+
+  if (conflict.type === "active") {
+    document.getElementById("blockedActiveMsg").innerHTML =
+      "An active request for this Part Number already exists for " +
+      "<strong>" + conflict.request.tailNumber + "</strong>.";
+    document.getElementById("blkReqId").innerText = conflict.request.id;
+    document.getElementById("blkTail").innerText = conflict.request.tailNumber;
+    document.getElementById("blkStatus").innerText = conflict.request.status;
+    document.getElementById("blkDate").innerText =
+      conflict.request.createdAtUtc.slice(0, 16).replace("T", " ") + " UTC";
+    openModal("modalBlockedActive");
+    return;
+  }
+
+  pendingCreateData = data;
+  document.getElementById("stockWarningMsg").innerHTML =
+    "Part <strong>" + conflict.part.partNumber + "</strong> is already available in the hangar warehouse.";
+  document.getElementById("warnLoc").innerText = conflict.inventory.location;
+  document.getElementById("warnDate").innerText =
+    conflict.inventory.updatedAtUtc
+      ? conflict.inventory.updatedAtUtc.slice(0, 16).replace("T", " ") + " UTC"
+      : "Available in stock";
+  openModal("modalStockWarning");
+}
+
+function handleOverrideStock() {
+  closeModal("modalStockWarning");
+  if (pendingCreateData) {
+    saveMechanicRequest(pendingCreateData);
+    pendingCreateData = null;
+  }
+}
+
+function formatUtc(dateValue) {
+  if (!dateValue) return "--";
+  return dateValue.slice(0, 16).replace("T", " ") + " UTC";
+}
+
+function renderMechanicRequests() {
+  const tbody = document.getElementById("requisitionsTableBody");
+  const requests = AeroSupplyStore.getRequests()
+    .filter(function (request) { return request.requestedBy === "J. Serna" || request.requestedBy === "Alex Morgan"; })
+    .sort(function (a, b) { return b.createdAtUtc.localeCompare(a.createdAtUtc); });
+
+  tbody.innerHTML = requests.map(function (request) {
+    const part = request.parts[0] || {};
+    const statusClass = request.status === "AOG" ? "aog" : request.status.toLowerCase().replaceAll(" ", "");
+    let actions =
+      '<button type="button" class="btn-table-action" onclick="openDetailsDrawer(this)">Details</button>';
+
+    if (request.status === "Pending") {
+      actions =
+        '<div class="table-actions-cell">' + actions +
+        '<button type="button" class="btn-icon-action btn-edit-action" onclick="openEditModal(this)" title="Edit Request"><i class="fa-solid fa-pen-to-square"></i></button>' +
+        '<button type="button" class="btn-icon-action btn-delete-action" onclick="openDeleteModal(this)" title="Cancel Request"><i class="fa-regular fa-trash-can"></i></button>' +
+        '</div>';
+    }
+
+    return '<tr data-id="' + request.id + '" data-status="' + request.status +
+      '" data-carrier="' + (request.shipment ? request.shipment.carrier : "N/A") +
+      '" data-awb="' + (request.shipment ? request.shipment.awb : "N/A") +
+      '" data-eta="' + (request.shipment && request.shipment.etaUtc ? formatUtc(request.shipment.etaUtc) : "Pending PO") +
+      '" data-location="' + (request.inventoryLocation || "") + '">' +
+      '<td class="col-id">' + request.id + '</td>' +
+      '<td class="col-date">' + formatUtc(request.createdAtUtc) + '</td>' +
+      '<td class="col-target">' + request.tailNumber + '</td>' +
+      '<td class="col-pn">' + part.partNumber + '</td>' +
+      '<td class="col-desc">' + part.description + '</td>' +
+      '<td class="col-qty">' + part.qty + '</td>' +
+      '<td class="text-center"><span class="badge-urgency ' + (request.urgency === "AOG" ? "aog" : "routine") + '">' + request.urgency + '</span></td>' +
+      '<td class="text-center"><span class="badge-status ' + statusClass + '">' + request.status + '</span></td>' +
+      '<td class="text-center">' + actions + '</td></tr>';
+  }).join("");
+}
+
+function handleGoToRequisitions() {
+  closeModal("modalSuccess");
+  clearCreateForm();
+  renderMechanicRequests();
+  viewCreate.classList.add("hidden");
+  viewRequisitions.classList.remove("hidden");
+  navMyReqsBtn.classList.add("active");
+  navCreateBtn.classList.remove("active");
+  viewTitle.innerText = "My Requisitions";
+}
+
+function openDetailsDrawer(button) {
+  const row = button.closest("tr");
+  const id = row.dataset.id;
+  const request = AeroSupplyStore.getRequest(id);
+  if (!request) return;
+
+  const part = request.parts[0] || {};
+  document.getElementById("drwId").innerText = request.id;
+  document.getElementById("drwDest").innerText = request.tailNumber;
+  document.getElementById("drwPn").innerText = part.partNumber || "--";
+  document.getElementById("drwDesc").innerText = part.description || "--";
+  document.getElementById("drwStatus").innerText = request.status;
+
+  const transitCard = document.getElementById("drwTransitCard");
+  const stockCard = document.getElementById("drwStockCard");
+  transitCard.classList.toggle("hidden", request.status !== "In Transit");
+  stockCard.classList.toggle("hidden", request.status !== "In Stock");
+
+  if (request.shipment) {
+    document.getElementById("drwCarrier").innerText = request.shipment.carrier || "--";
+    document.getElementById("drwAwb").innerText = request.shipment.awb || "--";
+    document.getElementById("drwEta").innerText = formatUtc(request.shipment.etaUtc);
+  }
+  if (request.inventoryLocation) {
+    document.getElementById("drwLoc").innerText = request.inventoryLocation;
+  }
+  document.getElementById("detailsDrawer").classList.remove("hidden");
+}
+
+function confirmSaveEdit() {
+  if (!currentTargetRow) return;
+  const qty = parseInt(document.getElementById("editQtyInput").value, 10);
+  if (isNaN(qty) || qty <= 0) {
+    alert("Quantity must be a valid number greater than zero.");
+    return;
+  }
+
+  const urgency = document.querySelector('input[name="editUrgencyRadio"]:checked').value;
+  const id = currentTargetRow.dataset.id;
+  const request = AeroSupplyStore.getRequest(id);
+  const parts = request.parts.map(function (part, index) {
+    return index === 0 ? Object.assign({}, part, { qty: qty }) : part;
+  });
+
+  AeroSupplyStore.updateRequest(id, { urgency: urgency, parts: parts }, mechanicActor("Request edited"));
+  closeModal("modalEditReq");
+  renderMechanicRequests();
+}
+
+function confirmDeleteRequisition() {
+  if (!currentTargetRow) return;
+  const reason = document.getElementById("deleteReasonInput").value.trim();
+  if (!reason) {
+    alert("Please provide the formal technical or operational reason for cancelling this requisition.");
+    document.getElementById("deleteReasonInput").focus();
+    return;
+  }
+
+  const id = currentTargetRow.dataset.id;
+  AeroSupplyStore.updateRequest(id, {
+    status: "Rejected",
+    rejectionReason: "Cancelled by Line Mechanic: " + reason
+  }, mechanicActor("Request cancelled"));
+
+  closeModal("modalDeleteReq");
+  currentTargetRow = null;
+  renderMechanicRequests();
+}
+
+navMyReqsBtn.addEventListener("click", renderMechanicRequests);
+document.addEventListener("DOMContentLoaded", renderMechanicRequests);
