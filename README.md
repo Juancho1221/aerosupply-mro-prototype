@@ -2,7 +2,7 @@
 
 Interactive frontend prototype for managing an aircraft maintenance supply chain, from spare-part requests to procurement, shipment, warehouse inspection, and inventory traceability.
 
-**[Open the live demo](https://juancho1221.github.io/aerosupply-mro-prototype/)**
+**[Open the live demo](https://juancho1221.github.io/aerosupply-mro-prototype/login.html)**
 
 > This is a demonstration prototype. It does not connect to a production backend or database.
 
@@ -38,8 +38,8 @@ AeroSupply models the flow of aviation parts through a Maintenance, Repair, and 
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | GitHub Pages entry point and demo role selector |
-| `login.html` | Compatibility redirect to the role selector |
+| `index.html` | GitHub Pages entry point; redirects to the role selector |
+| `login.html` | Demo role selector |
 | `mechanic.html`, `app.js` | Line Mechanic workflow |
 | `procurement.html`, `procurement.js` | Procurement workflow |
 | `manager.html`, `manager.js` | Approvals and traceability |

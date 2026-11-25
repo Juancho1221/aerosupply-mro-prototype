@@ -3,10 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="refresh" content="0; url=index.html">
   <title>AeroSupply - Role Access</title>
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
-<body>
-  <p>Opening AeroSupply demo. If you are not redirected, <a href="index.html">select a role</a>.</p>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-brand">
+      <div class="logo-icon">AS</div>
+      <h1>AeroSupply</h1>
+      <p>Maintenance, Repair & Overhaul</p>
+    </section>
+
+    <section class="login-card" aria-labelledby="roleTitle">
+      <h2 id="roleTitle">Select Role</h2>
+      <p>Choose one role to enter the mockup.</p>
+      <div class="role-grid">
+        <button type="button" class="role-option" data-role="Line Mechanic" data-page="mechanic.html">
+          <strong>Line Mechanic</strong>
+          <span>CYUL Hangar - Canada</span>
+        </button>
+        <button type="button" class="role-option" data-role="Procurement Buyer" data-page="procurement.html">
+          <strong>Procurement Buyer</strong>
+          <span>Medellin HQ - Colombia</span>
+        </button>
+        <button type="button" class="role-option" data-role="Maintenance Manager" data-page="manager.html">
+          <strong>Maintenance Manager</strong>
+          <span>CYUL Hangar - Canada</span>
+        </button>
+        <button type="button" class="role-option" data-role="Storekeeper" data-page="warehouse.html">
+          <strong>Storekeeper / Warehouse</strong>
+          <span>CYUL Hangar - Canada</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    document.querySelectorAll(".role-option").forEach(function (button) {
+      button.addEventListener("click", function () {
+        sessionStorage.setItem("aerosupply.role", button.dataset.role);
+        window.location.href = button.dataset.page;
+      });
+    });
+  </script>
 </body>
 </html>

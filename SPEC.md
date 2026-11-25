@@ -6,8 +6,8 @@
 - **Estilo:** Sidebar oscuro (`#090e1a`), fondo claro (`#f1f5f9`), tarjetas blancas (`#ffffff`), azul primario (`#0284c7`), AOG/Red Tag (`#ef4444`), warning (`#d97706`), conforme (`#16a34a`), fuente `Inter` + `ui-monospace`, reloj `UTC` visible.
 
 ## 2. Arquitectura de Archivos por Rol
-- `index.html`: Entrada para GitHub Pages y selector rápido de los 4 roles.
-- `login.html`: Redirige al selector de roles en `index.html`.
+- `index.html`: Entrada para GitHub Pages; redirige al selector de roles.
+- `login.html`: Selector rápido de los 4 roles.
 - `mechanic.html` + `app.js`: **Role 1 — Line Mechanic (CYUL Hangar - Canada)**
 - `procurement.html` + `procurement.js`: **Role 2 — Procurement Buyer (Bogotá HQ - Colombia)**
 - `manager.html` + `manager.js`: **Role 3 — Maintenance Manager (CYUL Hangar - Canada)**
